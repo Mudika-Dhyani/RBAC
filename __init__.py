@@ -1,66 +1,67 @@
+#!/usr/bin/python3
+
+# Access Control List.
+
 from rbac.action_type import ActionType
 
 
-class Registry(ActionType):
+class ACLRegistry(ActionType):
     """
-    The registry of access control list.
-    Implements code to check whether a particular user holds
-    the permission to access particular resource or not.
+    Registry for managing access control.
+    This class verifies whether a user has the necessary permission
+    to access a specific resource.
     """
 
     def __init__(self):
         super().__init__()
 
-    def isAllowed(self, user, action_type, resource):
-        """Check the permission.
-        if the access is denied, this method will return False;
-        if the access is allowed, this method will return True;
-        if there is no any rule for the access, this method
-        will return None.
+    def has_permission(self, user, action, resource):
+        """
+        Verify access permissions for a user on a resource.
+
+        Returns:
+        - False: If access is explicitly denied.
+        - True: If access is explicitly allowed.
+        - None: If no rule exists for the requested access.
         """
 
-        # check whether user and resource are present or not
-        assert not user or user in self.users
-        assert not resource or resource in self.resources
+        # Ensure user and resource exist
+        assert user and user in self.users, f"Invalid or missing user: {user}"
+        assert resource and resource in self.resources, f"Invalid or missing resource: {resource}"
 
-        # get roles of user
-        roles = self.users[user]
+        # Retrieve user's roles
+        user_roles = self.users[user]
 
-        # considering only super set of role
-        # e.x. if user having non-admin and admin role, then
-        # non-admin is subset of admin.
-        # in such case consider only admin role
-        # only one role for user
-        if len(roles) == 1:
-            role = list(roles)[0]
-        if len(roles) > 1:
-            # find super-set of role
-            for role in roles:
-                if role == 'super-admin' or role == 'admin':
+        # Resolve the most privileged role
+        primary_role = None
+        if len(user_roles) == 1:
+            primary_role = list(user_roles)[0]
+        elif len(user_roles) > 1:
+            # Prioritize roles based on hierarchy
+            for role in user_roles:
+                if role in {'super-admin', 'admin'}:
+                    primary_role = role
                     break
 
-        # first check deny rule
-        # if role not present in denied it will give keyerror
-        # then check allowed rules
+        # Check for explicit deny rules
         try:
-            if self.denied[role, action_type.upper(), resource]:
-                print("Error: Permission denied. User: {0} has no {1} "
-                      "access to resource: {2}".format(
-                          user, action_type, resource))
+            if self.denied[primary_role, action.upper(), resource]:
+                print(f"Access Denied: User '{user}' does not have '{action}' "
+                      f"permission for resource '{resource}'.")
                 return False
         except KeyError:
             pass
 
-        # if role not present in allowed, then return None
+        # Check for explicit allow rules
         try:
-            if self.allowed[role, action_type.upper(), resource]:
-                print("user: {0} has {1} access to "
-                      "resource: {2}".format(user, action_type, resource))
+            if self.allowed[primary_role, action.upper(), resource]:
+                print(f"Access Granted: User '{user}' has '{action}' permission "
+                      f"for resource '{resource}'.")
                 return True
-        except Exception:
-            print("Error: Permission denied. User: {0} has no {1} "
-                  "access to resource: {2}".format(
-                      user, action_type, resource))
-            return None
+        except KeyError:
+            pass
 
-
+        # No matching rule found
+        print(f"Access Undefined: No rules found for user '{user}' to perform '{action}' "
+              f"on resource '{resource}'.")
+        return None
