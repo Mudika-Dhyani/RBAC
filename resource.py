@@ -1,15 +1,22 @@
-class Resources:
+class ResourceManager:
     """
-    Implements addResource to add the resources.
+    Handles the addition and management of resources.
     """
 
     def __init__(self):
-        # Initialize resources
-        self.resources = {}
+        # Initialize the resource registry
+        self.resource_hierarchy = {}
 
-    def addResource(self, resource, parents=[]):
+    def register_resource(self, resource, parent_resources=None):
         """
-        Add a resource or append resource.
+        Register a resource and optionally associate it with parent resources.
         """
-        self.resources.setdefault(resource, set())
-        self.resources[resource].update(parents)
+        if parent_resources is None:
+            parent_resources = []
+
+        # Add the resource to the registry
+        if resource not in self.resource_hierarchy:
+            self.resource_hierarchy[resource] = set()
+
+        # Update parent relationships
+        self.resource_hierarchy[resource].update(parent_resources)
