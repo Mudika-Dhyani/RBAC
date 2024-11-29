@@ -1,39 +1,43 @@
-class Roles:
+class RoleManager:
     """
-    Implements add role and delete role functionalities.
+    Provides functionalities to add and remove roles.
     """
 
     def __init__(self):
         super().__init__()
-        # initialize roles
-        self.roles = {}
+        # Initialize the roles registry
+        self.role_permissions = {}
 
-    def addRole(self, role, actions=[]):
+    def add_role(self, role, permissions=None):
         """
-        Add a role or append roles with action types.
+        Add a role or assign actions (permissions) to a role.
         """
-        # if not action_type provided to role
-        if not actions:
-            raise Exception("Invalid Action Type")
+        if permissions is None:
+            raise ValueError("Permissions must be provided for the role.")
 
-        # invalid access level
-        for action in actions:
-            if action.upper() not in self.action_types:
-                raise Exception("Invalid Action Type")
+        # Validate action types
+        for action in permissions:
+            if action.upper() not in self.supported_actions:
+                raise ValueError(f"Invalid action type: {action}")
 
-        self.roles.setdefault(role, set())
-        self.roles[role].update(actions)
+        # Add the role to the registry
+        if role not in self.role_permissions:
+            self.role_permissions[role] = set()
 
-    def deleteRole(self, user, role):
+        # Assign permissions to the role
+        self.role_permissions[role].update(permissions)
+
+    def remove_role_from_user(self, user, role):
         """
-        Delete a role for user.
+        Remove a specific role from a user.
         """
-        # validation of role
-        assert not role or role in self.roles
+        # Validate the role exists
+        if role not in self.role_permissions:
+            raise KeyError(f"Role '{role}' does not exist.")
 
-        # delete role from users
+        # Remove the role from the user
         try:
-            self.users[user].remove(role)
+            self.user_roles[user].remove(role)
         except KeyError:
-            print("Error: No role: {0} for user: {1}".format(
-                role, user))
+            print(f"Error: Role '{role}' not found for user '{user}'.")
+
